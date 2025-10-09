@@ -1,0 +1,30 @@
+@startuml C4_Context_Diagram
+!include https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+title C4 Context Diagram: Система открытия депозитов (MVP)
+
+Person(new_client, "Новый клиент", "Потенциальный клиент банка")
+Person(existing_client, "Существующий клиент", "Клиент с действующими счетами")
+Person(call_operator, "Оператор кол-центра", "Обрабатывает заявки от новых клиентов")
+Person(backoffice_deposit, "Менеджер бэк-офиса депозитов", "Согласовывает и обрабатывает заявки")
+Person(backoffice_credit, "Менеджер бэк-офиса кредитов", "Управляет ставками депозитов")
+
+System(deposit_system, "Система открытия депозитов", "Позволяет клиентам подавать заявки на открытие депозитов онлайн через сайт и интернет-банк с последующей обработкой бэк-офисом")
+
+System_Ext(abs_system, "АБС", "Автоматизированная банковская система. Управление счетами, операциями, договорами")
+System_Ext(call_system, "Система кол-центра", "CRM-система для обработки обращений клиентов")
+System_Ext(sms_system, "СМС-шлюз", "Отправка СМС-уведомлений клиентам")
+
+Rel(new_client, deposit_system, "Подает заявку на депозит через сайт", "HTTPS")
+Rel(existing_client, deposit_system, "Подает заявку на депозит через интернет-банк", "HTTPS")
+
+Rel(deposit_system, call_system, "Передает заявки от новых клиентов", "REST API / HTTPS")
+Rel(deposit_system, abs_system, "Получает данные о ставках, отправляет заявки на обработку", "Event-driven / Kafka")
+Rel(deposit_system, sms_system, "Отправляет СМС-уведомления о статусе заявки", "REST API / HTTPS")
+
+Rel(call_operator, call_system, "Использует для обработки заявок")
+Rel(backoffice_deposit, abs_system, "Использует для обработки заявок")
+Rel(backoffice_credit, abs_system, "Использует для управления ставками")
+
+
+@enduml

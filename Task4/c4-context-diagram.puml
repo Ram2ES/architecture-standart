@@ -1,0 +1,29 @@
+@startuml C4_Context_Diagram_Rates
+!include https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+title C4 Context Diagram: Предоставление данных о ставках по депозитам для кол-центров
+
+Person(operator_internal, "Оператор внутреннего КЦ", "Консультирует клиентов по ставкам депозитов")
+Person(operator_partner, "Оператор партнёрского КЦ", "Консультирует клиентов по ставкам депозитов")
+Person(backoffice, "Бэк-офис депозитов", "Управляет ставками по депозитам")
+
+System(callcenter_system, "Система кол-центра", "Получает актуальные ставки через API для консультирования клиентов")
+System_Ext(partner_callcenter, "Партнёрский кол-центр", "Получает актуальные ставки из CSV-файла")
+System(deposit_service, "Сервис депозитов", "Предоставляет API ставок для внутреннего КЦ и генерирует CSV-файлы для партнёрского КЦ")
+System_Ext(sftp_server, "SFTP-сервер", "Хранит CSV-файлы с актуальными ставками для партнёрского КЦ")
+System(abs_system, "АБС", "Мастер-система для управления ставками по депозитам")
+System_Ext(kafka_system, "Apache Kafka", "Передача событий об обновлении ставок от АБС к Сервису депозитов")
+
+Rel(operator_internal, callcenter_system, "Просматривает актуальные ставки")
+Rel(callcenter_system, deposit_service, "Запрашивает ставки", "REST API / HTTPS / JSON")
+
+Rel(operator_partner, partner_callcenter, "Просматривает актуальные ставки")
+Rel(partner_callcenter, sftp_server, "Забирает CSV-файл с актуальными ставками", "SFTP / SSH")
+
+Rel(deposit_service, sftp_server, "Выгружает CSV-файл при каждом обновлении ставок", "SFTP / SSH / Event-driven")
+Rel(deposit_service, kafka_system, "Получает события об обновлении ставок", "Kafka Consumer")
+
+Rel(backoffice, abs_system, "Управляет ставками по депозитам")
+Rel(abs_system, kafka_system, "Публикует события RatesUpdated", "Kafka Producer")
+
+@enduml
