@@ -1,0 +1,59 @@
+@startuml C4_Component_Diagram_Rates
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+title C4 Component Diagram: Компоненты Сервиса депозитов и система кол-центра для работы со ставками
+
+Person(operator_internal, "Оператор внутреннего КЦ")
+System_Ext(partner_callcenter, "Партнёрский кол-центр", "Импортирует CSV-файл")
+System_Ext(kafka_ext, "Apache Kafka", "Топик: rates.updated")
+System(abs, "АБС", "Публикует события RatesUpdated")
+ContainerDb_Ext(redis, "Redis", "Cache", "In-memory кэш ставок с TTL 1 час")
+ContainerDb_Ext(postgresql, "PostgreSQL", "Database", "Хранение данных о ставках")
+
+System_Boundary(callcenter_boundary, "Система кол-центра") {
+    Container(deposits_ui, "UI: Справочник депозитов", "React.js", "Интерфейс для просмотра актуальных ставок операторами")
+    Component(api_client, "API Client Service", "Java", "REST-клиент для запросов к Сервису депозитов")
+    ComponentDb(local_cache, "Local Cache", "In-memory", "Кэш ставок на 1 час для отказоустойчивости")
+}
+
+System_Boundary(deposit_service_boundary, "Сервис депозитов") {
+    Component(rates_api, "Rates API Controller", "Spring REST Controller", "GET /api/rates - список ставок, GET /api/rates/{id} - детали депозита. API-key auth")
+    Component(rates_service, "Rates Service", "Spring Service", "Бизнес-логика работы со ставками, персонализация")
+    Component(cache_manager, "Cache Manager", "Spring Cache", "Управление кэшем в Redis с TTL 1 час")
+    Component(rates_repository, "Rates Repository", "Spring Data JPA", "CRUD операции со ставками в PostgreSQL")
+
+    Component(csv_generator, "CSV Generator", "Spring Component", "Формирует CSV-файл с актуальными ставками")
+    Component(sftp_client, "SFTP Client", "Spring Component", "Загружает файлы на SFTP-сервер по SSH-ключам")
+
+    Component(kafka_consumer, "Kafka Consumer", "Spring Kafka", "Получает события RatesUpdated и обновляет данные")
+    Component(csv_export_service, "CSV Export Service", "Spring Service", "Триггерит генерацию CSV по событию из Kafka")
+}
+
+System_Ext(sftp_server, "SFTP-сервер", "Файл: deposit_rates.csv (актуальный) + последние 5 версий для аудита")
+
+Rel(operator_internal, deposits_ui, "Просматривает ставки")
+Rel(deposits_ui, api_client, "Запрашивает данные")
+Rel(api_client, rates_api, "GET /api/rates", "REST API / JSON / API-key")
+Rel(api_client, local_cache, "Использует кэш при недоступности API")
+
+Rel(rates_api, rates_service, "Вызывает бизнес-логику")
+Rel(rates_service, cache_manager, "Проверяет кэш")
+Rel(rates_service, rates_repository, "Запрашивает данные")
+
+Rel(cache_manager, redis, "Читает/пишет кэш", "Redis protocol")
+Rel(rates_repository, postgresql, "SQL запросы", "JDBC / SQL")
+
+Rel(abs, kafka_ext, "Публикует события RatesUpdated", "Kafka")
+Rel(kafka_ext, kafka_consumer, "Получает события RatesUpdated", "Kafka")
+Rel(kafka_consumer, rates_repository, "Обновляет ставки в БД")
+Rel(kafka_consumer, cache_manager, "Инвалидирует кэш")
+Rel(kafka_consumer, csv_export_service, "Триггерит экспорт CSV")
+
+Rel(csv_export_service, csv_generator, "Запускает генерацию")
+Rel(csv_generator, rates_repository, "Читает актуальные ставки")
+Rel(csv_generator, sftp_client, "Передает сгенерированный файл")
+Rel(sftp_client, sftp_server, "Загружает CSV", "SFTP / SSH-key auth")
+
+Rel(sftp_server, partner_callcenter, "Забирает файл", "SFTP / read-only")
+
+@enduml
