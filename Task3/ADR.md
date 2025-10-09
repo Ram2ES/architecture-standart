@@ -38,8 +38,8 @@
 ### <a name="_qmphm5d6rvi3"></a>**Решение**
 
 **Диаграммы:**
-- [Диаграмма контекста](./Task3/C4_Context_Diagram.png)
-- [Диаграмма контейнеров](./Task3/C4_Container_Diagram.png)
+- [Диаграмма контекста](./C4_Context_Diagram.png)
+- [Диаграмма контейнеров](./C4_Container_Diagram.png)
 
 **Ключевые архитектурные решения:**
 
