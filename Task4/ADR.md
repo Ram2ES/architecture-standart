@@ -37,8 +37,8 @@
 ### **Решение**
 
 **Диаграммы:**
-- [Диаграмма контекста](./Task4/c4-context-diagram.png)
-- [Диаграмма компонентов](./Task4/c4-component-diagram.png)
+- [Диаграмма контекста](./Task4/C4_Context_Diagram.png)
+- [Диаграмма компонентов](./Task4/C4_Component_Diagram.png)
 
 **Ключевые архитектурные решения:**
 
